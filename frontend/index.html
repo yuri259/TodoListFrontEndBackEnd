@@ -1,0 +1,119 @@
+<!-- frontend/index.html 
+        FRONT END REACT 
+
+        index.html
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List - React Frontend</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+    <style>
+        .todo-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        function TodoApp() {
+            const [todos, setTodos] = React.useState([]);
+            const [newTodo, setNewTodo] = React.useState('');
+
+            React.useEffect(() => {
+                fetchTodos();
+            }, []);
+
+            const fetchTodos = async () => {
+                const response = await fetch('http://localhost:3000/api/todos');
+                const data = await response.json();
+                setTodos(data);
+            };
+
+            const addTodo = async (e) => {
+                e.preventDefault();
+                if (!newTodo.trim()) return;
+
+                const response = await fetch('http://localhost:3000/api/todos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: newTodo }),
+                });
+                const todo = await response.json();
+                setTodos([...todos, todo]);
+                setNewTodo('');
+            };
+
+            const toggleTodo = async (id) => {
+                const todo = todos.find(t => t.id === id);
+                const response = await fetch(`http://localhost:3000/api/todos/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ completed: !todo.completed }),
+                });
+                const updatedTodo = await response.json();
+                setTodos(todos.map(t => t.id === id ? updatedTodo : t));
+            };
+
+            const deleteTodo = async (id) => {
+                await fetch(`http://localhost:3000/api/todos/${id}`, {
+                    method: 'DELETE',
+                });
+                setTodos(todos.filter(t => t.id !== id));
+            };
+
+            return (
+                <div style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
+                    <h1>Todo List</h1>
+                    <form onSubmit={addTodo}>
+                        <input
+                            type="text"
+                            value={newTodo}
+                            onChange={(e) => setNewTodo(e.target.value)}
+                            placeholder="Add new todo"
+                            style={{ padding: '8px', marginRight: '8px' }}
+                        />
+                        <button type="submit">Add</button>
+                    </form>
+                    <div>
+                        {todos.map(todo => (
+                            <div key={todo.id} className="todo-item">
+                                <input
+                                    type="checkbox"
+                                    checked={todo.completed}
+                                    onChange={() => toggleTodo(todo.id)}
+                                />
+                                <span className={todo.completed ? 'completed' : ''} style={{ flex: 1, marginLeft: '10px' }}>
+                                    {todo.text}
+                                </span>
+                                <button onClick={() => deleteTodo(todo.id)}>Delete</button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<TodoApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
